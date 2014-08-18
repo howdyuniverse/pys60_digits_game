@@ -54,7 +54,10 @@ class GraphicBase(object):
         self.old_body = appuifw.app.body
         self.canvas = appuifw.Canvas(redraw_callback=self.clear_display,
                                      event_callback=handle_event)
-        self.screen_size = self.canvas.size
+        # phone screen width / height
+        self.screen_w = self.canvas.size[0]
+        self.screen_h = self.canvas.size[1]
+
         self.draw = graphics.Draw(self.canvas)
         appuifw.app.body = self.canvas
 
@@ -65,8 +68,8 @@ class GraphicBase(object):
         """ Return old body and destroy drawing objects """
 
         appuifw.app.body = self.old_body
-        self.canvas = None
-        self.draw = None
+        #self.canvas = None
+        #self.draw = None
 
 
 class Graphics(GraphicBase):
@@ -81,14 +84,14 @@ class Graphics(GraphicBase):
         self.init_points()
 
     def init_points(self):
-        x, y = self.screen_size
-        
-        x1 = 70       # my draw limit at left column
-        x2 = x - 70   # my draw limit at right column
-        x5 = x/2      # my draw limit at middle column
-        y1 = 70       # my draw limit at top row
-        y2 = y - 70   # my draw limit at bottom row
-        y5 = y/2      # my draw limit at middle row
+        """ Edge points for lines path that draw number """     
+
+        x1 = 70                   # my draw limit at left column
+        x2 = self.screen_w - 70   # my draw limit at right column
+        x5 = self.screen_w / 2    # my draw limit at middle column
+        y1 = 70                   # my draw limit at top row
+        y2 = self.screen_h - 70   # my draw limit at bottom row
+        y5 = self.screen_h / 2    # my draw limit at middle row
 
         self.point_top_left  = (x1, y1)
         self.point_top_right = (x2, y1)
@@ -156,21 +159,19 @@ class Graphics(GraphicBase):
                         u"NUMS: "+unicode(dig_num),
                         self.RGB_YELLOW,
                         font=(u'Nokia Hindi S60', 24))
-        self.draw.text((self.screen_size[0]-80, 25),
+        self.draw.text((self.screen_w - 80, 25),
                         u"LIVES: "+unicode(lives),
                         self.RGB_YELLOW,
                         font=(u'Nokia Hindi S60', 24))
 
     def draw_gameover(self):
-        x, y = self.screen_size
-        self.draw.text((x*0.2, y*0.5),
+        self.draw.text((self.screen_w * 0.2, self.screen_h * 0.5),
                         u"GAME OVER!",
                         self.RGB_RED,
                         font=(u'Nokia Hindi S60', 32))
 
     def draw_ready(self):
-        x, y = self.screen_size
-        self.draw.text((x*0.3, y*0.5),
+        self.draw.text((self.screen_w * 0.3, self.screen_h * 0.5),
                         u"READY?",
                         self.RGB_YELLOW,
                         font=(u'Nokia Hindi S60', 32))
@@ -178,6 +179,19 @@ class Graphics(GraphicBase):
 
 class GameCore(object):
     """ All game logic here """
+
+    KEYS = (
+        key_codes.EScancode0,
+        key_codes.EScancode1,
+        key_codes.EScancode2,
+        key_codes.EScancode3,
+        key_codes.EScancode4,
+        key_codes.EScancode5,
+        key_codes.EScancode6,
+        key_codes.EScancode7,
+        key_codes.EScancode8,
+        key_codes.EScancode9
+    )
 
     def __init__(self):
         self.keyboard = Keyboard()
@@ -187,11 +201,24 @@ class GameCore(object):
         self.curr_numindex = 0
         self.digits_num = 3
         self.lives = 3
-        self.player_wait = False
-        self.show_nums_wait = False
+        self.player_wait = True
 
         self.show_interval = 1.0
 
+    def tick(self):
+        self.gen_nums()
+        self.show_nums()
+        self.player_turn()
+
+    def cancel(self):
+        self.player_wait = False
+
+    def quit(self):
+        """ Must be called when game ends """
+
+        self.graphics.close_canvas()
+
+    #
     def draw_gamefield(self):
         self.graphics.clear_display()
         self.graphics.draw_info(self.digits_num, self.lives)
@@ -202,8 +229,6 @@ class GameCore(object):
         self.lives = 3
 
     def player_turn(self):
-        self.player_wait = True
-
         while self.player_wait:
             if self.lives == 0:
                 self.draw_gamefield()
@@ -211,52 +236,20 @@ class GameCore(object):
                 e32.ao_sleep(self.show_interval*1.5)
                 self.init_new_game()
                 break
-            # if-elif statment needs optimization
-            if self.keyboard.pressed(key_codes.EScancode0):
-                self.check_num(0)
-                
-            elif self.keyboard.pressed(key_codes.EScancode1):
-                self.check_num(1)
 
-            elif self.keyboard.pressed(key_codes.EScancode2):
-                self.check_num(2)
-
-            elif self.keyboard.pressed(key_codes.EScancode3):
-                self.check_num(3)
-
-            elif self.keyboard.pressed(key_codes.EScancode3):
-                self.check_num(3)
-
-            elif self.keyboard.pressed(key_codes.EScancode4):
-                self.check_num(4)
-
-            elif self.keyboard.pressed(key_codes.EScancode5):
-                self.check_num(5)
-
-            elif self.keyboard.pressed(key_codes.EScancode6):
-                self.check_num(6)
-
-            elif self.keyboard.pressed(key_codes.EScancode7):
-                self.check_num(7)
-
-            elif self.keyboard.pressed(key_codes.EScancode8):
-                self.check_num(8)
-
-            elif self.keyboard.pressed(key_codes.EScancode9):
-                self.check_num(9)
+            # process numeric keys, in this keys index is key number 0...9
+            # shorter but maybe not quite pythonic
+            # reafactoring recommend
+            for index, key in enumerate(self.KEYS):
+                if self.keyboard.pressed(key):
+                    self.check_num(index)
 
             # elif self.keyboard.pressed(key_codes.EScancodeRightSoftkey):
             #     self.player_wait = False
 
             e32.ao_sleep(0.1)
+        self.player_wait = True
 
-    def quit(self):
-        """ Must be called when game ends """
-
-        self.player_wait = False
-        self.graphics.close_canvas()
-
-    #
     def next_level(self):
         """ Re-init variables for next level """
 
@@ -270,6 +263,7 @@ class GameCore(object):
     def check_num(self, user_num):
         self.draw_gamefield()
         e32.ao_sleep(0.15)
+
         if user_num == self.numbers[self.curr_numindex]:
             self.graphics.draw_num(user_num, correct=True)
             self.curr_numindex += 1
@@ -283,27 +277,39 @@ class GameCore(object):
             self.graphics.draw_num(user_num, correct=False)
 
     def gen_nums(self):
-        """ Generates random numbers between 0 and 9 for self.numbers """
+        """ Generates random numbers 0...9 for self.numbers """
 
         self.numbers = []
         for i in range(self.digits_num):
             self.numbers.append(int(random.randrange(10)))
 
     def show_nums(self):
-        """ Show numbers to user with specific interval """
+        """ Show numbers to user with specific interval
+            
+            note:
+            Needs reafactoring. When core cancels, game stucks on for loop.
+            Now loop breaks before calling sleep functions. - Not good.
+        """
 
         # before showing nums clear display and wait few millisec
         self.draw_gamefield()
         self.graphics.draw_ready()
-        e32.ao_sleep(self.show_interval*1.5)
+        e32.ao_sleep(self.show_interval * 1.5)
 
         for num in self.numbers:
             self.draw_gamefield()
             self.graphics.draw_num(num)
+
+            if not self.player_wait:
+                break
+
             e32.ao_sleep(self.show_interval)
             # show clear screen between numbers
             self.draw_gamefield()
+
             # wait on clear screen before showing next number
+            if not self.player_wait:
+                break
             e32.ao_sleep(self.show_interval * 0.25)
 
 
@@ -318,7 +324,9 @@ class Game(object):
         """
 
         appuifw.app.screen = screen_mode
+
         self.game_core = GameCore()
+
         appuifw.app.menu = [
             (u"Exit", self.set_exit)
         ]
@@ -327,8 +335,8 @@ class Game(object):
     def set_exit(self):
         """ Breaks game loop in self.run function """
 
+        self.game_core.cancel()
         self.exit_flag = True
-        self.game_core.quit()
 
     def run(self):
         """ Main game loop """
@@ -336,13 +344,10 @@ class Game(object):
         appuifw.app.exit_key_handler = self.set_exit
         
         while not self.exit_flag:
-            self.game_core.gen_nums()
-            self.game_core.show_nums()
-            self.game_core.player_turn()
-
+            self.game_core.tick()
             e32.ao_sleep(self.INTERVAL)
 
-        #self.game_core.quit()
+        self.game_core.quit()
 
 
 if __name__ == "__main__":
