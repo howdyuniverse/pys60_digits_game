@@ -1,5 +1,9 @@
 """
-    Game Template for pys60 platform
+    Digits game
+    based on pys60_gametemplate:
+    https://github.com/howdyworld/pys60_gametemplate
+
+    temporary all classes in one file
 """
 import e32
 import appuifw
