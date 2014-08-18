@@ -79,11 +79,11 @@ class Graphics(GraphicBase):
     def init_points(self):
         x, y = self.screen_size
         
-        x1 = 40       # my draw limit at left column
-        x2 = x - 40   # my draw limit at right column
+        x1 = 70       # my draw limit at left column
+        x2 = x - 70   # my draw limit at right column
         x5 = x/2      # my draw limit at middle column
-        y1 = 40       # my draw limit at top row
-        y2 = y - 40   # my draw limit at bottom row
+        y1 = 70       # my draw limit at top row
+        y2 = y - 70   # my draw limit at bottom row
         y5 = y/2      # my draw limit at middle row
 
         self.point_top_left  = (x1, y1)
@@ -144,9 +144,32 @@ class Graphics(GraphicBase):
             color = self.RGB_YELLOW
         else:
             color = self.RGB_RED
-        # Remove old and draw new number
-        self.clear_display()
-        self.draw.line(points, width=40, outline=color)
+
+        self.draw.line(points, width=30, outline=color)
+
+    def draw_info(self, dig_num, lives):
+        self.draw.text((5, 25),
+                        u"NUMS: "+unicode(dig_num),
+                        self.RGB_YELLOW,
+                        font=(u'Nokia Hindi S60', 24))
+        self.draw.text((self.screen_size[0]-80, 25),
+                        u"LIVES: "+unicode(lives),
+                        self.RGB_YELLOW,
+                        font=(u'Nokia Hindi S60', 24))
+
+    def draw_gameover(self):
+        x, y = self.screen_size
+        self.draw.text((x*0.2, y*0.5),
+                        u"GAME OVER!",
+                        self.RGB_RED,
+                        font=(u'Nokia Hindi S60', 32))
+
+    def draw_ready(self):
+        x, y = self.screen_size
+        self.draw.text((x*0.3, y*0.5),
+                        u"READY?",
+                        self.RGB_YELLOW,
+                        font=(u'Nokia Hindi S60', 32))
 
 
 class GameCore(object):
@@ -158,16 +181,32 @@ class GameCore(object):
 
         self.numbers = []
         self.curr_numindex = 0
-        self.digits_num = 2
+        self.digits_num = 3
+        self.lives = 3
         self.player_wait = False
         self.show_nums_wait = False
 
         self.show_interval = 1.0
 
+    def draw_gamefield(self):
+        self.graphics.clear_display()
+        self.graphics.draw_info(self.digits_num, self.lives)
+
+    def init_new_game(self):
+        self.curr_numindex = 0
+        self.digits_num = 3
+        self.lives = 3
+
     def player_turn(self):
         self.player_wait = True
 
         while self.player_wait:
+            if self.lives == 0:
+                self.draw_gamefield()
+                self.graphics.draw_gameover()
+                e32.ao_sleep(self.show_interval*1.5)
+                self.init_new_game()
+                break
             # if-elif statment needs optimization
             if self.keyboard.pressed(key_codes.EScancode0):
                 self.check_num(0)
@@ -225,39 +264,41 @@ class GameCore(object):
         self.player_wait = False
 
     def check_num(self, user_num):
-        self.graphics.clear_display()
+        self.draw_gamefield()
         e32.ao_sleep(0.15)
         if user_num == self.numbers[self.curr_numindex]:
             self.graphics.draw_num(user_num, correct=True)
             self.curr_numindex += 1
 
             # if user pass all numbers
-            if self.curr_numindex == self.digits_num + 1:
+            if self.curr_numindex == self.digits_num:
                 self.next_level()
         else:
+            self.lives -= 1
+            self.draw_gamefield()
             self.graphics.draw_num(user_num, correct=False)
-
 
     def gen_nums(self):
         """ Generates random numbers between 0 and 9 for self.numbers """
 
         self.numbers = []
-        for i in range(self.digits_num+1):
+        for i in range(self.digits_num):
             self.numbers.append(int(random.randrange(10)))
-
 
     def show_nums(self):
         """ Show numbers to user with specific interval """
 
         # before showing nums clear display and wait few millisec
-        self.graphics.clear_display()
-        e32.ao_sleep(self.show_interval)
+        self.draw_gamefield()
+        self.graphics.draw_ready()
+        e32.ao_sleep(self.show_interval*1.5)
 
         for num in self.numbers:
+            self.draw_gamefield()
             self.graphics.draw_num(num)
             e32.ao_sleep(self.show_interval)
             # show clear screen between numbers
-            self.graphics.clear_display()
+            self.draw_gamefield()
             # wait on clear screen before showing next number
             e32.ao_sleep(self.show_interval * 0.25)
 
