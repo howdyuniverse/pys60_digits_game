@@ -200,6 +200,7 @@ class GameCore(object):
         self.numbers = []
         self.curr_numindex = 0
         self.digits_num = 3
+        self.digits_counter = self.digits_num
         self.lives = 3
         self.player_wait = True
 
@@ -221,14 +222,17 @@ class GameCore(object):
     #
     def draw_gamefield(self):
         self.graphics.clear_display()
-        self.graphics.draw_info(self.digits_num, self.lives)
+        self.graphics.draw_info(self.digits_counter, self.lives)
 
     def init_new_game(self):
         self.curr_numindex = 0
         self.digits_num = 3
+        self.digits_counter = self.digits_num
         self.lives = 3
 
     def player_turn(self):
+        """ Player turn loop. Wait for players key pressing. """
+
         while self.player_wait:
             if self.lives == 0:
                 self.draw_gamefield()
@@ -258,15 +262,20 @@ class GameCore(object):
         # increase num number for next level
         self.curr_numindex = 0
         self.digits_num += 1
+        self.digits_counter = self.digits_num
         self.player_wait = False
 
     def check_num(self, user_num):
+        """ Calls when player press key """
+
         self.draw_gamefield()
         e32.ao_sleep(0.15)
 
         if user_num == self.numbers[self.curr_numindex]:
-            self.graphics.draw_num(user_num, correct=True)
             self.curr_numindex += 1
+            self.digits_counter -= 1
+            self.draw_gamefield()
+            self.graphics.draw_num(user_num, correct=True)
 
             # if user pass all numbers
             if self.curr_numindex == self.digits_num:
