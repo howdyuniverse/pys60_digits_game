@@ -101,6 +101,87 @@ class Graphics(GraphicBase):
         
         self.point_btm_left  = (x1, y2)
         self.point_btm_right = (x2, y2)
+        self.init_nums_points()
+
+    def init_nums_points(self):
+
+        self.nums_points = {}
+        self.nums_points[0] = [
+            self.point_top_left,
+            self.point_top_right,
+            self.point_mid_right,
+            self.point_btm_right,
+            self.point_btm_left,
+            self.point_mid_left,
+            self.point_top_left
+        ]
+        self.nums_points[1] = [
+            self.point_top_right,
+            self.point_mid_right,
+            self.point_btm_right
+        ]
+        self.nums_points[2] = [
+            self.point_top_left,
+            self.point_top_right,
+            self.point_mid_right,
+            self.point_mid_left,
+            self.point_btm_left,
+            self.point_btm_right
+        ]
+        self.nums_points[3] = [
+            self.point_top_left,
+            self.point_top_right,
+            self.point_mid_right,
+            self.point_mid_left,
+            self.point_mid_right,
+            self.point_btm_right,
+            self.point_btm_left
+        ]
+        self.nums_points[4] = [
+            self.point_top_left,
+            self.point_mid_left,
+            self.point_mid_right,
+            self.point_top_right,
+            self.point_btm_right
+        ]
+        self.nums_points[5] = [
+            self.point_top_right,
+            self.point_top_left,
+            self.point_mid_left,
+            self.point_mid_right,
+            self.point_btm_right,
+            self.point_btm_left
+        ]
+        self.nums_points[6] = [
+            self.point_top_right,
+            self.point_top_left,
+            self.point_btm_left,
+            self.point_btm_right,
+            self.point_mid_right,
+            self.point_mid_left
+        ]
+        self.nums_points[7] = [
+            self.point_top_left,
+            self.point_top_right,
+            self.point_btm_right
+        ]
+        self.nums_points[8] = [
+            self.point_mid_left,
+            self.point_top_left,
+            self.point_top_right,
+            self.point_btm_right,
+            self.point_btm_left,
+            self.point_mid_left,
+            self.point_mid_right
+        ]
+        self.nums_points[9] = [
+            self.point_mid_right,
+            self.point_mid_left,
+            self.point_top_left,
+            self.point_top_right,
+            self.point_btm_right,
+            self.point_btm_left
+        ]
 
     def draw_num(self, number, correct=True):
         """ Drawing number on all screen """
@@ -108,51 +189,13 @@ class Graphics(GraphicBase):
         # Draw a number, stop at negative values and numbers greater 9
         if number < 0 or number > 9:
             return
-
-        # Set coordinates for drawing new number
-        # elif and points adding needs optimization
-        # http://legacy.python.org/dev/peps/pep-0275/
-        # https://mail.python.org/pipermail/tutor/2011-September/085542.html
-        points = []
-        if number == 0:
-            points += self.point_top_left + self.point_top_right + self.point_mid_right + self.point_btm_right
-            points += self.point_btm_left + self.point_mid_left + self.point_top_left
-        elif number == 1:
-            points += self.point_top_right + self.point_mid_right + self.point_btm_right
-        elif number == 2:
-            points += self.point_top_left + self.point_top_right + self.point_mid_right + self.point_mid_left
-            points += self.point_btm_left + self.point_btm_right
-        elif number == 3:
-            points += self.point_top_left + self.point_top_right + self.point_mid_right + self.point_mid_left
-            points += self.point_mid_right + self.point_btm_right + self.point_btm_left
-        elif number == 4:
-            points += self.point_top_left + self.point_mid_left + self.point_mid_right + self.point_top_right
-            points += self.point_btm_right
-        elif number == 5:
-            points += self.point_top_right + self.point_top_left + self.point_mid_left + self.point_mid_right
-            points += self.point_btm_right + self.point_btm_left
-        elif number == 6:
-            points += self.point_top_right + self.point_top_left + self.point_btm_left + self.point_btm_right
-            points += self.point_mid_right + self.point_mid_left
-        elif number == 7:
-            points += self.point_top_left + self.point_top_right + self.point_btm_right
-        elif number == 8:
-            points += self.point_mid_left + self.point_top_left + self.point_top_right + self.point_btm_right
-            points += self.point_btm_left + self.point_mid_left + self.point_mid_right
-        elif number == 9:
-            points += self.point_mid_right + self.point_mid_left + self.point_top_left + self.point_top_right
-            points += self.point_btm_right + self.point_btm_left
-        else:
-            # Should never get here, but avoid problems anyway
-            number = 0
-            points = self.point_top_left
         
         if correct:
             color = self.RGB_YELLOW
         else:
             color = self.RGB_RED
 
-        self.draw.line(points, width=30, outline=color)
+        self.draw.line(self.nums_points[number], width=30, outline=color)
 
     def draw_info(self, dig_num, lives):
         self.draw.text((5, 25),
