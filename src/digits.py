@@ -45,8 +45,9 @@ class GraphicBase(object):
 
     def __init__(self, handle_event, bg_color=(0, 0, 0)):
         """ Constructor
-            Args:
-                bg_color (tuple): RGB color three byte int
+
+        Args:
+            bg_color (tuple): RGB color three byte int
         """
 
         self.bg_color = bg_color
@@ -86,12 +87,12 @@ class Graphics(GraphicBase):
     def init_points(self):
         """ Edge points for lines path that draw number """     
 
-        x1 = 70                   # my draw limit at left column
-        x2 = self.screen_w - 70   # my draw limit at right column
-        x5 = self.screen_w / 2    # my draw limit at middle column
-        y1 = 70                   # my draw limit at top row
-        y2 = self.screen_h - 70   # my draw limit at bottom row
-        y5 = self.screen_h / 2    # my draw limit at middle row
+        x1 = 70                   # draw limit at left column
+        x2 = self.screen_w - 70   # draw limit at right column
+        x5 = self.screen_w / 2    # draw limit at middle column
+        y1 = 70                   # draw limit at top row
+        y2 = self.screen_h - 70   # draw limit at bottom row
+        y5 = self.screen_h / 2    # draw limit at middle row
 
         self.point_top_left  = (x1, y1)
         self.point_top_right = (x2, y1)
@@ -101,9 +102,15 @@ class Graphics(GraphicBase):
         
         self.point_btm_left  = (x1, y2)
         self.point_btm_right = (x2, y2)
+
         self.init_nums_points()
 
     def init_nums_points(self):
+        """ Creates dict with digits as keys
+        Each key contains points for drawing line path that represent number.
+
+        Still needs reaftoring?
+        """
 
         self.nums_points = {}
         self.nums_points[0] = [
@@ -184,28 +191,46 @@ class Graphics(GraphicBase):
         ]
 
     def draw_num(self, number, correct=True):
-        """ Drawing number on all screen """
+        """ Drawing number on screen
 
-        # Draw a number, stop at negative values and numbers greater 9
+        Args:
+            number (int): value of pressed number 0...9
+            correct (bool): flag for number color right/wrong number
+        """
+
         if number < 0 or number > 9:
             return
-        
-        if correct:
-            color = self.RGB_YELLOW
-        else:
-            color = self.RGB_RED
 
+        color = self.RGB_YELLOW if correct else self.RGB_RED
         self.draw.line(self.nums_points[number], width=30, outline=color)
 
-    def draw_info(self, dig_num, lives):
+    def draw_info(self, passed_num, dig_num, lifes, passed_digs):
+        """ Drawing current game info
+
+        Args:
+            passed_num (int): passed digits number
+            dig_num (int): numbers countdown
+            lifes (int): lifes counter
+            passed_digs (list): last passed numbers, must fit in screen size
+        """
         self.draw.text((5, 25),
-                        u"NUMS: "+unicode(dig_num),
+                        u"NUMS: %s/%s" % (unicode(passed_num), unicode(dig_num)),
                         self.RGB_YELLOW,
                         font=(u'Nokia Hindi S60', 24))
         self.draw.text((self.screen_w - 80, 25),
-                        u"LIVES: "+unicode(lives),
+                        u"LIFES: "+unicode(lifes),
                         self.RGB_YELLOW,
                         font=(u'Nokia Hindi S60', 24))
+
+        # simple passed digits
+        if passed_digs:
+            digs_str = u""
+            for digit in passed_digs[::-1]:
+                digs_str += unicode(digit) + u" "
+            self.draw.text((5, self.screen_h - 10),
+                            digs_str,
+                            self.RGB_YELLOW,
+                            font=(u'Nokia Hindi S60', 24))
 
     def draw_gameover(self):
         self.draw.text((self.screen_w * 0.2, self.screen_h * 0.5),
@@ -241,10 +266,9 @@ class GameCore(object):
         self.graphics = Graphics(self.keyboard.handle_event)
 
         self.numbers = []
-        self.curr_numindex = 0
+        self.digits_counter = 0
         self.digits_num = 3
-        self.digits_counter = self.digits_num
-        self.lives = 3
+        self.lifes = 3
         self.player_wait = True
 
         self.show_interval = 1.0
@@ -265,19 +289,23 @@ class GameCore(object):
     #
     def draw_gamefield(self):
         self.graphics.clear_display()
-        self.graphics.draw_info(self.digits_counter, self.lives)
+        self.graphics.draw_info(self.digits_counter,
+                                self.digits_num,
+                                self.lifes,
+                                self.numbers[:self.digits_counter])
 
     def init_new_game(self):
-        self.curr_numindex = 0
+        """ Reset all varibales that require new game (first level) """
+
         self.digits_num = 3
-        self.digits_counter = self.digits_num
-        self.lives = 3
+        self.digits_counter = 0
+        self.lifes = 3
 
     def player_turn(self):
         """ Player turn loop. Wait for players key pressing. """
 
         while self.player_wait:
-            if self.lives == 0:
+            if self.lifes == 0:
                 self.draw_gamefield()
                 self.graphics.draw_gameover()
                 e32.ao_sleep(self.show_interval*1.5)
@@ -285,16 +313,13 @@ class GameCore(object):
                 break
 
             # process numeric keys, in this keys index is key number 0...9
-            # shorter but maybe not quite pythonic
-            # reafactoring recommend
+            # shorter but maybe not quite pythonic, reafactoring recommend
             for index, key in enumerate(self.KEYS):
                 if self.keyboard.pressed(key):
                     self.check_num(index)
 
-            # elif self.keyboard.pressed(key_codes.EScancodeRightSoftkey):
-            #     self.player_wait = False
-
             e32.ao_sleep(0.1)
+
         self.player_wait = True
 
     def next_level(self):
@@ -303,28 +328,30 @@ class GameCore(object):
         # wait before breaking current level loop and go to the next
         e32.ao_sleep(self.show_interval)
         # increase num number for next level
-        self.curr_numindex = 0
         self.digits_num += 1
-        self.digits_counter = self.digits_num
+        self.digits_counter = 0
         self.player_wait = False
 
     def check_num(self, user_num):
-        """ Calls when player press key """
+        """ Calls when player press key
+        
+        Args:
+            user_num (int): 
+        """
 
         self.draw_gamefield()
         e32.ao_sleep(0.15)
 
-        if user_num == self.numbers[self.curr_numindex]:
-            self.curr_numindex += 1
-            self.digits_counter -= 1
+        if user_num == self.numbers[self.digits_counter]:
+            self.digits_counter += 1
             self.draw_gamefield()
             self.graphics.draw_num(user_num, correct=True)
 
             # if user pass all numbers
-            if self.curr_numindex == self.digits_num:
+            if self.digits_counter == self.digits_num:
                 self.next_level()
         else:
-            self.lives -= 1
+            self.lifes -= 1
             self.draw_gamefield()
             self.graphics.draw_num(user_num, correct=False)
 
@@ -338,7 +365,7 @@ class GameCore(object):
     def show_nums(self):
         """ Show numbers to user with specific interval
             
-            note:
+        Note:
             Needs reafactoring. When core cancels, game stucks on for loop.
             Now loop breaks before calling sleep functions. - Not good.
         """
@@ -371,8 +398,9 @@ class Game(object):
 
     def __init__(self, screen_mode="full"):
         """ Constructor
-            Args:
-                screen_mode (str): normal, large, full
+
+        Args:
+            screen_mode (str): normal, large, full
         """
 
         appuifw.app.screen = screen_mode
