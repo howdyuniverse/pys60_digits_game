@@ -10,6 +10,7 @@ import appuifw
 import graphics
 import random
 import key_codes
+import base64
 
 # http://www.mobilenin.com/pys60/resources/ex_use_of_keys_descr.py
 class Keyboard(object):
@@ -47,7 +48,9 @@ class GraphicBase(object):
         """ Constructor
 
         Args:
-            bg_color (tuple): RGB color three byte int
+            redraw (func): function for redrawing game scene
+            handle_event (func): keyboard handler
+            bg_color (tuple): RGB color
         """
 
         self.bg_color = bg_color
@@ -204,12 +207,13 @@ class Graphics(GraphicBase):
         color = self.RGB_YELLOW if correct else self.RGB_RED
         self.draw.line(self.nums_points[number], width=30, outline=color)
 
-    def draw_info(self, passed_num, dig_num, lifes, passed_digs):
+    def draw_info(self, passed_num, dig_num, best_score, lifes, passed_digs):
         """ Drawing current game info
 
         Args:
             passed_num (int): passed digits number
             dig_num (int): numbers countdown
+            best_score (int): best score number
             lifes (int): lifes counter
             passed_digs (list): last passed numbers, must fit in screen size
         """
@@ -217,6 +221,10 @@ class Graphics(GraphicBase):
                         u"NUMS: %s/%s" % (unicode(passed_num), unicode(dig_num)),
                         self.RGB_YELLOW,
                         font=(u'Nokia Hindi S60', 24))
+        self.draw.text((5, 40),
+                        u"BEST: %s" % unicode(best_score),
+                        self.RGB_YELLOW,
+                        font=(u'Nokia Hindi S60', 14))
         self.draw.text((self.screen_w - 80, 25),
                         u"LIFES: "+unicode(lifes),
                         self.RGB_YELLOW,
@@ -261,6 +269,8 @@ class GameCore(object):
         key_codes.EScancode9
     )
 
+    scorefile_path = "C:\\digits_game.txt"
+
     def __init__(self):
         self.keyboard = Keyboard()
         self.graphics = Graphics(self.keyboard.handle_event)
@@ -271,12 +281,29 @@ class GameCore(object):
         self.lifes = 3
         self.player_wait = True
 
+        self.best_score = 0
+        self.load_score()
+
         self.show_interval = 1.0
 
     def tick(self):
         self.gen_nums()
         self.show_nums()
         self.player_turn()
+
+    def load_score(self):
+        try:
+            fdata = open(self.scorefile_path, "r")
+            self.best_score = int(base64.b64decode(fdata.readline()))
+        except:
+            pass
+        else:
+            fdata.close()
+
+    def save_score(self):
+        fdata = open(self.scorefile_path, "w")
+        fdata.write(base64.b64encode(unicode(self.best_score)))
+        fdata.close()
 
     def cancel(self):
         self.player_wait = False
@@ -291,6 +318,7 @@ class GameCore(object):
         self.graphics.clear_display()
         self.graphics.draw_info(self.digits_counter,
                                 self.digits_num,
+                                self.best_score,
                                 self.lifes,
                                 self.numbers[:self.digits_counter])
 
@@ -327,6 +355,10 @@ class GameCore(object):
 
         # wait before breaking current level loop and go to the next
         e32.ao_sleep(self.show_interval)
+        # check record
+        if self.digits_num > self.best_score:
+            self.best_score = self.digits_num
+            self.save_score()
         # increase num number for next level
         self.digits_num += 1
         self.digits_counter = 0
