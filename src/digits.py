@@ -241,16 +241,11 @@ class GameCore(object):
         self.graphics = Graphics(self.keyboard.handle_event)
 
         self.numbers = []
-        self.digits_counter = 0
-        self.digits_num = 3
-        self.lifes = 3
+        self.ready_interval = 1.5
         self.player_wait = True
-
         self.best_score = 0
         self.load_score()
-
-        self.show_interval = 1.0
-        self.ready_interval = 1.5
+        self.init_new_game()
 
     def tick(self):
         self.gen_nums()
@@ -294,6 +289,7 @@ class GameCore(object):
         self.digits_num = 3
         self.digits_counter = 0
         self.lifes = 3
+        self.show_interval = 1.0
 
     def player_turn(self):
         """ Player turn loop. Wait for players key pressing. """
