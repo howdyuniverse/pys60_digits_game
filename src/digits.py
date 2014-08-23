@@ -117,80 +117,45 @@ class Graphics(GraphicBase):
 
         self.nums_points = {}
         self.nums_points[0] = [
-            self.point_top_left,
-            self.point_top_right,
-            self.point_mid_right,
-            self.point_btm_right,
-            self.point_btm_left,
-            self.point_mid_left,
+            self.point_top_left, self.point_top_right, self.point_mid_right,
+            self.point_btm_right, self.point_btm_left, self.point_mid_left,
             self.point_top_left
         ]
         self.nums_points[1] = [
-            self.point_top_right,
-            self.point_mid_right,
-            self.point_btm_right
+            self.point_top_right, self.point_mid_right, self.point_btm_right
         ]
         self.nums_points[2] = [
-            self.point_top_left,
-            self.point_top_right,
-            self.point_mid_right,
-            self.point_mid_left,
-            self.point_btm_left,
-            self.point_btm_right
+            self.point_top_left, self.point_top_right, self.point_mid_right,
+            self.point_mid_left, self.point_btm_left, self.point_btm_right
         ]
         self.nums_points[3] = [
-            self.point_top_left,
-            self.point_top_right,
-            self.point_mid_right,
-            self.point_mid_left,
-            self.point_mid_right,
-            self.point_btm_right,
+            self.point_top_left, self.point_top_right, self.point_mid_right,
+            self.point_mid_left, self.point_mid_right, self.point_btm_right,
             self.point_btm_left
         ]
         self.nums_points[4] = [
-            self.point_top_left,
-            self.point_mid_left,
-            self.point_mid_right,
-            self.point_top_right,
-            self.point_btm_right
+            self.point_top_left, self.point_mid_left, self.point_mid_right,
+            self.point_top_right, self.point_btm_right
         ]
         self.nums_points[5] = [
-            self.point_top_right,
-            self.point_top_left,
-            self.point_mid_left,
-            self.point_mid_right,
-            self.point_btm_right,
-            self.point_btm_left
+            self.point_top_right, self.point_top_left, self.point_mid_left,
+            self.point_mid_right, self.point_btm_right, self.point_btm_left
         ]
         self.nums_points[6] = [
-            self.point_top_right,
-            self.point_top_left,
-            self.point_btm_left,
-            self.point_btm_right,
-            self.point_mid_right,
-            self.point_mid_left
+            self.point_top_right, self.point_top_left, self.point_btm_left,
+            self.point_btm_right, self.point_mid_right, self.point_mid_left
         ]
         self.nums_points[7] = [
-            self.point_top_left,
-            self.point_top_right,
-            self.point_btm_right
+            self.point_top_left, self.point_top_right, self.point_btm_right
         ]
         self.nums_points[8] = [
-            self.point_mid_left,
-            self.point_top_left,
-            self.point_top_right,
-            self.point_btm_right,
-            self.point_btm_left,
-            self.point_mid_left,
+            self.point_mid_left, self.point_top_left, self.point_top_right,
+            self.point_btm_right, self.point_btm_left, self.point_mid_left,
             self.point_mid_right
         ]
         self.nums_points[9] = [
-            self.point_mid_right,
-            self.point_mid_left,
-            self.point_top_left,
-            self.point_top_right,
-            self.point_btm_right,
-            self.point_btm_left
+            self.point_mid_right, self.point_mid_left, self.point_top_left,
+            self.point_top_right, self.point_btm_right, self.point_btm_left
         ]
 
     def draw_num(self, number, correct=True):
@@ -285,6 +250,7 @@ class GameCore(object):
         self.load_score()
 
         self.show_interval = 1.0
+        self.ready_interval = 1.5
 
     def tick(self):
         self.gen_nums()
@@ -336,7 +302,7 @@ class GameCore(object):
             if self.lifes == 0:
                 self.draw_gamefield()
                 self.graphics.draw_gameover()
-                e32.ao_sleep(self.show_interval*1.5)
+                e32.ao_sleep(self.ready_interval)
                 self.init_new_game()
                 break
 
@@ -363,6 +329,7 @@ class GameCore(object):
         self.digits_num += 1
         self.digits_counter = 0
         self.player_wait = False
+        self.show_interval *= 0.8
 
     def check_num(self, user_num):
         """ Calls when player press key
@@ -405,7 +372,7 @@ class GameCore(object):
         # before showing nums clear display and wait few millisec
         self.draw_gamefield()
         self.graphics.draw_ready()
-        e32.ao_sleep(self.show_interval * 1.5)
+        e32.ao_sleep(self.ready_interval)
 
         for num in self.numbers:
             self.draw_gamefield()

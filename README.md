@@ -3,7 +3,7 @@
 
 Memorize digits and then type them in original order.
 
-On each level player gets more digits for memorizing.
+On each level player gets more digits and less time for memorizing.
 
 ![screenshot 1](/screenshots/screen_0.png)
 ![screenshot 2](/screenshots/screen_1.png)
