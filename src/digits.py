@@ -221,6 +221,12 @@ class Graphics(GraphicBase):
                         self.RGB_YELLOW,
                         font=(u'Nokia Hindi S60', 32))
 
+    def draw_startscreen(self):
+        self.draw.text((self.screen_w * 0.2, self.screen_h * 0.3),
+                        u"Press 5 to start",
+                        self.RGB_YELLOW,
+                        font=(u'Nokia Hindi S60', 24))
+
 
 class GameCore(object):
     """ All game logic here """
@@ -238,27 +244,29 @@ class GameCore(object):
         key_codes.EScancode9
     )
 
-    scorefile_path = "C:\\digits_game.txt"
+    READY_INTERVAL = 1.5
+    SCOREFILE_PATH = "C:\\digits_game.txt"
 
     def __init__(self):
         self.keyboard = Keyboard()
         self.graphics = Graphics(self.keyboard.handle_event)
 
         self.numbers = []
-        self.ready_interval = 1.5
+        self.start_wait = True
         self.player_wait = True
         self.best_score = 0
         self.load_score()
         self.init_new_game()
 
     def tick(self):
+        self.start_screen()
         self.gen_nums()
         self.show_nums()
         self.player_turn()
 
     def load_score(self):
         try:
-            fdata = open(self.scorefile_path, "r")
+            fdata = open(self.SCOREFILE_PATH, "r")
             self.best_score = int(base64.b64decode(fdata.readline()))
         except:
             pass
@@ -266,11 +274,12 @@ class GameCore(object):
             fdata.close()
 
     def save_score(self):
-        fdata = open(self.scorefile_path, "w")
+        fdata = open(self.SCOREFILE_PATH, "w")
         fdata.write(base64.b64encode(unicode(self.best_score)))
         fdata.close()
 
     def cancel(self):
+        self.start_wait = False
         self.player_wait = False
 
     def quit(self):
@@ -295,6 +304,15 @@ class GameCore(object):
         self.lifes = 3
         self.show_interval = 1.0
 
+    def start_screen(self):
+        self.draw_gamefield()
+        self.graphics.draw_startscreen()
+        while self.start_wait:
+            if self.keyboard.pressed(key_codes.EScancode5):
+                self.start_wait = False
+            e32.ao_sleep(0.001)
+        self.start_wait = True
+
     def player_turn(self):
         """ Player turn loop. Wait for players key pressing. """
 
@@ -304,7 +322,7 @@ class GameCore(object):
             if self.lifes == 0:
                 self.draw_gamefield()
                 self.graphics.draw_gameover()
-                e32.ao_sleep(self.ready_interval)
+                e32.ao_sleep(self.READY_INTERVAL)
                 self.init_new_game()
                 break
 
@@ -370,11 +388,14 @@ class GameCore(object):
             Needs reafactoring. When core cancels, game stucks on for loop.
             Now loop breaks before calling sleep functions. - Not good.
         """
+        # check if game core is cancel and game is over
+        if not self.player_wait:
+            return
 
         # before showing nums clear display and wait few millisec
         self.draw_gamefield()
         self.graphics.draw_ready()
-        e32.ao_sleep(self.ready_interval)
+        e32.ao_sleep(self.READY_INTERVAL)
 
         for num in self.numbers:
             self.draw_gamefield()
