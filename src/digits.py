@@ -41,6 +41,10 @@ class Keyboard(object):
             return True
         return False
 
+    def flush(self):
+        for key in self._downs:
+            self._downs[key] = 0
+
 
 class GraphicBase(object):
 
@@ -293,6 +297,8 @@ class GameCore(object):
 
     def player_turn(self):
         """ Player turn loop. Wait for players key pressing. """
+
+        self.keyboard.flush()
 
         while self.player_wait:
             if self.lifes == 0:
