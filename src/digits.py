@@ -86,6 +86,8 @@ class Graphics(GraphicBase):
     RGB_BLACK = (0,0,0)
     RGB_YELLOW = (255,255,0)
     RGB_RED = (255,0,0)
+    RGB_WHITE = (255, 255, 255)
+    RGB_GREEN = (0, 255, 0)
 
     def __init__(self, keyboard_handler):
         GraphicBase.__init__(self, keyboard_handler)
@@ -222,11 +224,38 @@ class Graphics(GraphicBase):
                         font=(u'Nokia Hindi S60', 32))
 
     def draw_startscreen(self):
-        self.draw.text((self.screen_w * 0.2, self.screen_h * 0.3),
-                        u"Press 5 to start",
+        self.draw.text((self.screen_w * 0.14, self.screen_h * 0.3),
+                        u"PRESS 5 TO START",
                         self.RGB_YELLOW,
                         font=(u'Nokia Hindi S60', 24))
 
+    def draw_scores(self, scores):
+        """ Draw tabel of best game scores
+        Args:
+            scores (list): list of tuples with best scores and player names
+            for example:
+            [(8, u"howdyworld"), (7, u"Valera"), (7, u"Homer"), (6, u"Barney"), (5, u"Ted")]
+        """
+        self.draw.text((self.screen_w * 0.28, self.screen_h * 0.4),
+                        u"HIGHT SCORES",
+                        self.RGB_GREEN,
+                        font=(u'Nokia Hindi S60', 18))
+        
+        pos = self.screen_h * 0.4
+
+        if not scores:
+            self.draw.text((self.screen_w * 0.28, pos+20),
+                            u"[0] None",
+                            self.RGB_WHITE,
+                            font=(u'Nokia Hindi S60', 14))
+
+        for score in scores:
+            score_text = u"[%d] %s" % (score[0], score[1])
+            pos += 20
+            self.draw.text((self.screen_w * 0.28, pos),
+                            score_text,
+                            self.RGB_WHITE,
+                            font=(u'Nokia Hindi S60', 14))
 
 class GameCore(object):
     """ All game logic here """
@@ -255,7 +284,8 @@ class GameCore(object):
         self.start_wait = True
         self.player_wait = True
         self.best_score = 0
-        self.load_score()
+        self.scores = []
+        self.load_scores()
         self.init_new_game()
 
     def tick(self):
@@ -264,19 +294,55 @@ class GameCore(object):
         self.show_nums()
         self.player_turn()
 
-    def load_score(self):
+    def load_scores(self):
+        """ Load data from file to scores list.
+            All records represent as base 64 string.
+            For extracting we need decode file line string.
+            As result we get data in following form:
+            "[score num (int)],[player name (str)]"
+        """
         try:
-            fdata = open(self.SCOREFILE_PATH, "r")
-            self.best_score = int(base64.b64decode(fdata.readline()))
+            for line in open(self.SCOREFILE_PATH, "r"):
+                score_rec = base64.b64decode(line)
+                score_rec = score_rec.split(",")
+                if len(score_rec) != 2:
+                    continue
+                try:
+                    score = int(score_rec[0])
+                except:
+                    continue
+                player = score_rec[1]
+                self.scores.append((score, player))
+
+            if self.scores:
+                # assume that the list is sorted in file, and get first item
+                # otherwise leave self.best_score value from constructor
+                self.best_score = self.scores[0][0]
         except:
             pass
-        else:
-            fdata.close()
 
-    def save_score(self):
+    def save_scores(self):
         fdata = open(self.SCOREFILE_PATH, "w")
-        fdata.write(base64.b64encode(unicode(self.best_score)))
+        for score in self.scores:
+            score_rec = u"%d,%s" % (score[0], score[1])
+            fdata.write(base64.b64encode(score_rec)+"\n")
         fdata.close()
+
+    def check_bestscore(self, score):
+        """ Check if current score best than scores stored in self.scores
+        Args:
+            score (int): score for checking
+        """
+        if score == 2:
+            return
+        player_name = appuifw.query(u"Your name", "text", u"Anonym")
+        score_rec = (score, player_name)
+        self.scores.append(score_rec)
+        self.scores.sort(key=lambda item: item[0], reverse=True)
+        if len(self.scores) > 5:
+            del self.scores[0]
+        self.save_scores()
+        self.best_score = self.scores[-1][0]
 
     def cancel(self):
         self.start_wait = False
@@ -303,15 +369,25 @@ class GameCore(object):
         self.digits_counter = 0
         self.lifes = 3
         self.show_interval = 1.0
+        self.start_wait = True
 
     def start_screen(self):
-        self.draw_gamefield()
+        """ Display start screen (like main menu) with top 5 scores.
+            User can see this screen only when game not started yet.
+        """
+
+        # if game in progress skip start screen
+        if not self.start_wait:
+            return
+
+        self.graphics.clear_display()
         self.graphics.draw_startscreen()
+        self.graphics.draw_scores(self.scores)
+
         while self.start_wait:
             if self.keyboard.pressed(key_codes.EScancode5):
                 self.start_wait = False
             e32.ao_sleep(0.001)
-        self.start_wait = True
 
     def player_turn(self):
         """ Player turn loop. Wait for players key pressing. """
@@ -322,6 +398,8 @@ class GameCore(object):
             if self.lifes == 0:
                 self.draw_gamefield()
                 self.graphics.draw_gameover()
+                # check record
+                self.check_bestscore(self.digits_num-1)
                 e32.ao_sleep(self.READY_INTERVAL)
                 self.init_new_game()
                 break
@@ -341,11 +419,7 @@ class GameCore(object):
 
         # wait before breaking current level loop and go to the next
         e32.ao_sleep(self.show_interval)
-        # check record
-        if self.digits_num > self.best_score:
-            self.best_score = self.digits_num
-            self.save_score()
-        # increase num number for next level
+
         self.digits_num += 1
         self.digits_counter = 0
         self.player_wait = False
