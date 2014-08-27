@@ -86,8 +86,7 @@ class Graphics(GraphicBase):
     RGB_BLACK = (0,0,0)
     RGB_YELLOW = (255,255,0)
     RGB_RED = (255,0,0)
-    RGB_WHITE = (255, 255, 255)
-    RGB_GREEN = (0, 255, 0)
+    RGB_ORANGE = (224, 87, 35)
 
     def __init__(self, keyboard_handler):
         GraphicBase.__init__(self, keyboard_handler)
@@ -224,6 +223,10 @@ class Graphics(GraphicBase):
                         font=(u'Nokia Hindi S60', 32))
 
     def draw_startscreen(self):
+        self.draw.text((5, 40),
+                        u"Digits",
+                        self.RGB_YELLOW,
+                        font=(u'Nokia Hindi S60', 32))
         self.draw.text((self.screen_w * 0.14, self.screen_h * 0.3),
                         u"PRESS 5 TO START",
                         self.RGB_YELLOW,
@@ -238,23 +241,23 @@ class Graphics(GraphicBase):
         """
         self.draw.text((self.screen_w * 0.28, self.screen_h * 0.4),
                         u"HIGHT SCORES",
-                        self.RGB_GREEN,
+                        self.RGB_ORANGE,
                         font=(u'Nokia Hindi S60', 18))
         
         pos = self.screen_h * 0.4
 
         if not scores:
             self.draw.text((self.screen_w * 0.28, pos+20),
-                            u"[0] None",
-                            self.RGB_WHITE,
+                            u"0 -- None",
+                            self.RGB_YELLOW,
                             font=(u'Nokia Hindi S60', 14))
 
         for score in scores:
-            score_text = u"[%d] %s" % (score[0], score[1])
+            score_text = u"%d -- %s" % (score[0], score[1])
             pos += 20
             self.draw.text((self.screen_w * 0.28, pos),
                             score_text,
-                            self.RGB_WHITE,
+                            self.RGB_YELLOW,
                             font=(u'Nokia Hindi S60', 14))
 
 class GameCore(object):
@@ -262,15 +265,9 @@ class GameCore(object):
 
     KEYS = (
         key_codes.EScancode0,
-        key_codes.EScancode1,
-        key_codes.EScancode2,
-        key_codes.EScancode3,
-        key_codes.EScancode4,
-        key_codes.EScancode5,
-        key_codes.EScancode6,
-        key_codes.EScancode7,
-        key_codes.EScancode8,
-        key_codes.EScancode9
+        key_codes.EScancode1, key_codes.EScancode2, key_codes.EScancode3,
+        key_codes.EScancode4, key_codes.EScancode5, key_codes.EScancode6,
+        key_codes.EScancode7, key_codes.EScancode8, key_codes.EScancode9,
     )
 
     READY_INTERVAL = 1.5
@@ -284,6 +281,7 @@ class GameCore(object):
         self.start_wait = True
         self.player_wait = True
         self.best_score = 0
+        self.last_playername = u"Anonym"
         self.scores = []
         self.load_scores()
         self.init_new_game()
@@ -335,12 +333,12 @@ class GameCore(object):
         """
         if score == 2:
             return
-        player_name = appuifw.query(u"Your name", "text", u"Anonym")
-        score_rec = (score, player_name)
+        self.last_playername = appuifw.query(u"Your name", "text", self.last_playername)
+        score_rec = (score, self.last_playername)
         self.scores.append(score_rec)
         self.scores.sort(key=lambda item: item[0], reverse=True)
         if len(self.scores) > 5:
-            del self.scores[0]
+            del self.scores[-1]
         self.save_scores()
         self.best_score = self.scores[-1][0]
 
@@ -400,7 +398,7 @@ class GameCore(object):
                 self.graphics.draw_gameover()
                 # check record
                 self.check_bestscore(self.digits_num-1)
-                e32.ao_sleep(self.READY_INTERVAL)
+                #e32.ao_sleep(self.READY_INTERVAL)
                 self.init_new_game()
                 break
 
