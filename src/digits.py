@@ -60,17 +60,22 @@ class GraphicBase(object):
         self.bg_color = bg_color
         #
         self.old_body = appuifw.app.body
-        self.canvas = appuifw.Canvas(redraw_callback=self.clear_display,
+        self.canvas = appuifw.Canvas(redraw_callback=self.redraw,
                                      event_callback=handle_event)
         # phone screen width / height
         self.screen_w = self.canvas.size[0]
         self.screen_h = self.canvas.size[1]
 
-        self.draw = graphics.Draw(self.canvas)
+        #self.draw = graphics.Draw(self.canvas)
+        self.draw = graphics.Image.new(self.canvas.size)
         appuifw.app.body = self.canvas
 
-    def clear_display(self, rect=()):
+    def clear_buf(self):
         self.draw.clear(self.bg_color)
+
+    def redraw(self, rect=()):
+        if self.draw:
+            self.canvas.blit(self.draw)
 
     def close_canvas(self):
         """ Return old body and destroy drawing objects """
@@ -353,7 +358,7 @@ class GameCore(object):
 
     #
     def draw_gamefield(self):
-        self.graphics.clear_display()
+        self.graphics.clear_buf()
         self.graphics.draw_info(self.digits_counter,
                                 self.digits_num,
                                 self.best_score,
@@ -378,9 +383,10 @@ class GameCore(object):
         if not self.start_wait:
             return
 
-        self.graphics.clear_display()
+        self.graphics.clear_buf()
         self.graphics.draw_startscreen()
         self.graphics.draw_scores(self.scores)
+        self.graphics.redraw()
 
         while self.start_wait:
             if self.keyboard.pressed(key_codes.EScancode5):
@@ -396,6 +402,7 @@ class GameCore(object):
             if self.lifes == 0:
                 self.draw_gamefield()
                 self.graphics.draw_gameover()
+                self.graphics.redraw()
                 # check record
                 self.check_bestscore(self.digits_num-1)
                 #e32.ao_sleep(self.READY_INTERVAL)
@@ -431,12 +438,14 @@ class GameCore(object):
         """
 
         self.draw_gamefield()
+        self.graphics.redraw()
         e32.ao_sleep(0.15)
 
         if user_num == self.numbers[self.digits_counter]:
             self.digits_counter += 1
             self.draw_gamefield()
             self.graphics.draw_num(user_num, correct=True)
+            self.graphics.redraw()
 
             # if user pass all numbers
             if self.digits_counter == self.digits_num:
@@ -445,6 +454,7 @@ class GameCore(object):
             self.lifes -= 1
             self.draw_gamefield()
             self.graphics.draw_num(user_num, correct=False)
+            self.graphics.redraw()
 
     def gen_nums(self):
         """ Generates random numbers 0...9 for self.numbers """
@@ -467,11 +477,13 @@ class GameCore(object):
         # before showing nums clear display and wait few millisec
         self.draw_gamefield()
         self.graphics.draw_ready()
+        self.graphics.redraw()
         e32.ao_sleep(self.READY_INTERVAL)
 
         for num in self.numbers:
             self.draw_gamefield()
             self.graphics.draw_num(num)
+            self.graphics.redraw()
 
             if not self.player_wait:
                 break
@@ -479,6 +491,7 @@ class GameCore(object):
             e32.ao_sleep(self.show_interval)
             # show clear screen between numbers
             self.draw_gamefield()
+            self.graphics.redraw()
 
             # wait on clear screen before showing next number
             if not self.player_wait:
